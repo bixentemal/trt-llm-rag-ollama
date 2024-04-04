@@ -45,6 +45,11 @@ pip install -r requirements.txt
 python app.py
 ```
 
+To request an external ollama inference endpoint
+```
+python app.py --base_url http://<remote-host>:11434
+```
+
 ## Adding your own data
 - This app loads data from the dataset / directory into the vector store. To add support for your own data, replace the files in the dataset / directory with your own data. By default, the script uses llamaindex's SimpleDirectoryLoader which supports text files such as .txt, PDF, and so on.
 

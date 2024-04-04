@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import argparse
 import os
 import time
 import json
@@ -63,6 +64,17 @@ def get_model_config(config, model_name=None):
 def get_data_path(config):
     return os.path.join(os.getcwd(), config["dataset"]["path"])
 
+# Create an argument parser
+parser = argparse.ArgumentParser(description='NVIDIA Chatbot Parameters')
+
+# Add arguments
+parser.add_argument('--base_url', type=str, required=False,
+                    help="base url of the inference endpoint. format : http://remote-host:11434", default="http://localhost:11434")
+
+args = parser.parse_args()
+
+base_url = args.base_url
+
 # read the app specific config
 app_config = read_config(app_config_file)
 streaming = app_config["streaming"]
@@ -86,7 +98,7 @@ if selected_model_name == None:
 model_config = get_model_config(config, selected_model_name)
 data_dir = config["dataset"]["path"] if selected_data_directory == None else selected_data_directory
 
-llm = Ollama(model=selected_model_name, base_url="http://192.168.0.43:11434")
+llm = Ollama(model=selected_model_name, base_url=base_url)
 
 # create embeddings model object
 embed_model = HuggingFaceEmbeddings(model_name=embedded_model)
@@ -280,7 +292,7 @@ def on_model_change_handler(model, metadata, session_id):
 
     global llm, embedded_model, engine, data_dir, service_context
 
-    llm = Ollama(model=model, base_url="http://192.168.0.43:11434")
+    llm = Ollama(model=model, base_url=base_url)
     service_context = ServiceContext.from_service_context(service_context=service_context, llm=llm)
     set_global_service_context(service_context)
     generate_inferance_engine(data_dir)
