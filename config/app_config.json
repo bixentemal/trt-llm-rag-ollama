@@ -1,0 +1,7 @@
+{
+    "streaming": true,
+    "similarity_top_k": 4,
+    "is_chat_engine": false,
+    "embedded_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedded_dimension": 384
+}

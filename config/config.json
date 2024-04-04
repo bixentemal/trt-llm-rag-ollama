@@ -1,0 +1,50 @@
+{
+    "models": {
+        "supported": [
+            {
+                "name": "mistral",
+                "metadata": {
+                    "max_new_tokens": 1024,
+                    "max_input_token": 7168,
+                    "temperature": 0.1
+                }
+            },
+            {
+                "name": "llama2",
+                "metadata": {
+                    "max_new_tokens": 1024,
+                    "max_input_token": 3900,
+                    "temperature": 0.1
+                }
+            }
+        ],
+        "selected": "mistral"
+    },
+    "sample_questions": [
+        {
+            "query": "How does NVIDIA ACE generate emotional responses?"
+        },
+        {
+            "query": "What is Portal prelude RTX?"
+        },
+        {
+            "query": "What is important about Half Life 2 RTX?"
+        },
+        {
+            "query": "When is the launch date for Ratchet & Clank: Rift Apart on PC?"
+        }
+    ],
+    "dataset": {
+        "sources": [
+            "directory",
+            "nodataset"
+        ],
+        "selected": "directory",
+        "path": "dataset",
+        "isRelative": true
+    },
+    "strings": {
+        "directory": "Folder Path",
+        "nodataset": "AI model default"
+    }
+}

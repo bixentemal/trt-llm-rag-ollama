@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+.DS_Store
+config/preferences.json
+.vscode/
+.venv
+dataset_vector_embedding
+.idea
