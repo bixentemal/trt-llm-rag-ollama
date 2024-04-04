@@ -2,6 +2,7 @@
 
 This is a modified version of the https://github.com/NVIDIA/trt-llm-rag-windows.git using Ollama
 
+![rag](rag.png)
 
 Chat with RTX is a demo app that lets you personalize a GPT large language model (LLM) connected to your own content—docs, notes, videos, or other data. Leveraging retrieval-augmented generation (RAG), TensorRT-LLM, and RTX acceleration, you can query a custom chatbot to quickly get contextually relevant answers. And because it all runs locally on your Windows RTX PC or workstation, you’ll get fast and secure results.
 Chat with RTX supports various file formats, including text, pdf, doc/docx, and xml. Simply point the application at the folder containing your files and it'll load them into the library in a matter of seconds. Additionally, you can provide the url of a YouTube playlist and the app will load the transcriptions of the videos in the playlist, enabling you to query the content they cover
@@ -18,13 +19,19 @@ Retrieval-augmented generation (RAG) for large language models (LLMs) seeks to e
 ollama pull llama2
 ollama pull mistral
 ```
-- on linux tk must be installed (to allow root dir selection)
+tk must be installed (to allow root dir selection)
+On linux :
 ```
 sudo apt-get install python3-tk
 ```
 
+on MacOs :
+```
+brew install python-tk@3.10
+```
+
 Prerequisites 
-- [Python 3.10](https://www.python.org/downloads/windows/)
+- Python 3.10
 
 2. Install requirement.txt
 ```

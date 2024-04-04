@@ -28,8 +28,7 @@ def select_folder(root):
     top = tk.Toplevel(root)
     top.attributes('-topmost', True)
     top.withdraw()
-    #parent = top if platform.system() == "Windows" else None
-    parent = top
+    parent = top if platform.system() == "Windows" else None
     directory = filedialog.askdirectory(parent=parent)
     top.destroy()
     return directory

@@ -86,7 +86,7 @@ if selected_model_name == None:
 model_config = get_model_config(config, selected_model_name)
 data_dir = config["dataset"]["path"] if selected_data_directory == None else selected_data_directory
 
-llm = Ollama(model=selected_model_name)
+llm = Ollama(model=selected_model_name, base_url="http://192.168.0.43:11434")
 
 # create embeddings model object
 embed_model = HuggingFaceEmbeddings(model_name=embedded_model)
@@ -280,7 +280,7 @@ def on_model_change_handler(model, metadata, session_id):
 
     global llm, embedded_model, engine, data_dir, service_context
 
-    llm = Ollama(model=model)
+    llm = Ollama(model=model, base_url="http://192.168.0.43:11434")
     service_context = ServiceContext.from_service_context(service_context=service_context, llm=llm)
     set_global_service_context(service_context)
     generate_inferance_engine(data_dir)
