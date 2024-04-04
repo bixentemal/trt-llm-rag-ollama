@@ -20,6 +20,7 @@ ollama pull llama2
 ollama pull mistral
 ```
 tk must be installed (to allow root dir selection)
+
 On linux :
 ```
 sudo apt-get install python3-tk
