@@ -6,7 +6,7 @@ This is a modified version of the https://github.com/NVIDIA/trt-llm-rag-windows.
 - <b>client/server deployment</b> : you can run this python app by connecting to the remote host serving ollama endpoint see [here](#ollama_serve) for details.
 
 
-![rag](rag.png)
+![rag](rag_animated.gif)
 
 Chat with RTX is a demo app that lets you personalize a GPT large language model (LLM) connected to your own content—docs, notes, videos, or other data. Leveraging retrieval-augmented generation (RAG), you can query a custom chatbot to quickly get contextually relevant answers. And because it all runs locally on your workstation, you’ll get fast and secure results.
 
