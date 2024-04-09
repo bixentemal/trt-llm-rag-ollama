@@ -6,3 +6,4 @@ config/preferences.json
 .venv
 dataset_vector_embedding
 .idea
+.env

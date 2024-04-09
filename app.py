@@ -31,6 +31,9 @@ from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from collections import defaultdict
 from llama_index import ServiceContext
 from llama_index import set_global_service_context
+from llama_index.core.response.schema import RESPONSE_TYPE
+from llama_index.llms import OpenAI
+
 from faiss_vector_storage import FaissEmbeddingStorage
 from ui.user_interface import MainInterface
 from llama_index.llms.ollama import Ollama
@@ -99,6 +102,10 @@ model_config = get_model_config(config, selected_model_name)
 data_dir = config["dataset"]["path"] if selected_data_directory == None else selected_data_directory
 
 llm = Ollama(model=selected_model_name, base_url=base_url)
+#for tests
+#from dotenv import load_dotenv
+#load_dotenv()
+#llm = OpenAI()
 
 # create embeddings model object
 embed_model = HuggingFaceEmbeddings(model_name=embedded_model)
@@ -143,23 +150,19 @@ def call_llm_streamed(query):
         partial_response += token.delta
         yield partial_response
 
-def chatbot(query, chat_history, session_id):
-    if data_source == "nodataset":
-        yield llm.complete(query).text
-        return
-
-    if is_chat_engine:
-        response = engine.chat(query)
-    else:
-        response = engine.query(query)
-
+def generate_references(response: RESPONSE_TYPE) -> list[dict] :
     # Aggregate scores by file
     file_scores = defaultdict(float)
+    file_page_nbs = {}
     for node in response.source_nodes:
         metadata = node.metadata
         if 'filename' in metadata:
             file_name = metadata['filename']
             file_scores[file_name] += node.score
+            if metadata.get("page_label"):
+                if not file_page_nbs.get(file_name) :
+                    file_page_nbs[file_name] = set()
+                file_page_nbs[file_name].add(int(metadata.get("page_label")))
 
     # Find the file with the highest aggregated score
     highest_aggregated_score_file = None
@@ -172,7 +175,8 @@ def chatbot(query, chat_history, session_id):
     # Generate links for the file with the highest aggregated score
     if highest_aggregated_score_file:
         abs_path = Path(os.path.join(os.getcwd(), highest_aggregated_score_file.replace('\\', '/')))
-        file_name = os.path.basename(abs_path)
+        #file_name = os.path.basename(abs_path)
+        file_name = str(abs_path)
         file_name_without_ext = abs_path.stem
         if file_name not in seen_files:  # Ensure the file hasn't already been processed
             if data_source == 'directory':
@@ -182,10 +186,32 @@ def chatbot(query, chat_history, session_id):
             file_links.append(file_link)
             seen_files.add(file_name)  # Mark file as processed
 
+    result = []
+    for x in seen_files:
+        if file_page_nbs.get(x) :
+            result.append({"filename" : x, "pages" : file_page_nbs.get(x) })
+        else:
+            result.append({"filename": x})
+    return result
+
+def chatbot(query, chat_history, session_id):
+    if data_source == "nodataset":
+        yield llm.complete(query).text
+        return
+
+    if is_chat_engine:
+        response = engine.chat(query)
+    else:
+        response = engine.query(query)
+
+    # generate file links if any
+    file_links = generate_references(response)
+
     response_txt = str(response)
     if file_links:
-        response_txt += "<br>Reference files:<br>" + "<br>".join(file_links)
-    if not highest_aggregated_score_file:  # If no file with a high score was found
+        filename_list = [f.get("filename") for f in file_links]
+        response_txt += "<br>Reference files:<br>" + "<br>".join(filename_list)
+    if not file_links or len(file_links) == 0:  # If no file with a high score was found
         response_txt = llm.complete(query).text
     yield response_txt
 
@@ -207,18 +233,6 @@ def stream_chatbot(query, chat_history, session_id):
             partial_response += token.delta
             yield partial_response
     else:
-        # Aggregate scores by file
-        file_scores = defaultdict(float)
-        for node in response.source_nodes:
-            if 'filename' in node.metadata:
-                file_name = node.metadata['filename']
-                file_scores[file_name] += node.score
-
-        # Find the file with the highest aggregated score
-        highest_score_file = max(file_scores, key=file_scores.get, default=None)
-
-        file_links = []
-        seen_files = set()
         for token in response.response_gen:
             partial_response += token
             yield partial_response
@@ -226,26 +240,23 @@ def stream_chatbot(query, chat_history, session_id):
 
         time.sleep(0.2)
 
-        if highest_score_file:
-            abs_path = Path(os.path.join(os.getcwd(), highest_score_file.replace('\\', '/')))
-            file_name = os.path.basename(abs_path)
-            file_name_without_ext = abs_path.stem
-            if file_name not in seen_files:  # Check if file_name is already seen
-                if data_source == 'directory':
-                    file_link = file_name
-                else:
-                    exit("Wrong data_source type")
-                file_links.append(file_link)
-                seen_files.add(file_name)  # Add file_name to the set
+        # generate file links if any
+        file_links = generate_references(response)
 
         if file_links:
             partial_response += "<br><br>Reference files:"
             for retrieved_file in file_links:
                 partial_response += "<br>"
-                partial_response += "<a href=\"file://%s\">%s</a>"%(retrieved_file, retrieved_file)
+                partial_response += "<a href=\"file://%s\">%s</a>"\
+                                    %(
+                                        retrieved_file.get("filename"),
+                                        retrieved_file.get("filename") + " [ p. " +
+                                        ", ".join([str(x) for x in sorted(retrieved_file.get("pages"))]) + " ]" if retrieved_file.get("pages")
+                                        else retrieved_file.get("filename")
+                                    )
                 partial_response += "<br>"
 
-        yield partial_response
+        yield  partial_response
 
     # call garbage collector after inference
     torch.cuda.empty_cache()
