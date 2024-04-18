@@ -32,7 +32,7 @@ from collections import defaultdict
 from llama_index import ServiceContext
 from llama_index import set_global_service_context
 from llama_index.core.response.schema import RESPONSE_TYPE
-from llama_index.llms import OpenAI
+#from llama_index.llms import OpenAI
 
 from faiss_vector_storage import FaissEmbeddingStorage
 from ui.user_interface import MainInterface
@@ -85,6 +85,7 @@ similarity_top_k = app_config["similarity_top_k"]
 is_chat_engine = app_config["is_chat_engine"]
 embedded_model = app_config["embedded_model"]
 embedded_dimension = app_config["embedded_dimension"]
+score_threshold_filter = app_config["score_threshold_filter"]
 
 # read model specific config
 selected_model_name = None
@@ -102,6 +103,7 @@ model_config = get_model_config(config, selected_model_name)
 data_dir = config["dataset"]["path"] if selected_data_directory == None else selected_data_directory
 
 llm = Ollama(model=selected_model_name, base_url=base_url)
+
 #for tests
 #from dotenv import load_dotenv
 #load_dotenv()
@@ -150,34 +152,44 @@ def call_llm_streamed(query):
         partial_response += token.delta
         yield partial_response
 
-def generate_references(response: RESPONSE_TYPE) -> list[dict] :
+def generate_references(response: RESPONSE_TYPE, max_score = 1) -> list[dict] :
     # Aggregate scores by file
-    file_scores = defaultdict(float)
+    file_sum_scores = defaultdict(float)
+    file_count = defaultdict(int)
     file_page_nbs = {}
     for node in response.source_nodes:
         metadata = node.metadata
         if 'filename' in metadata:
             file_name = metadata['filename']
-            file_scores[file_name] += node.score
+            file_sum_scores[file_name] += node.score
+            file_count[file_name] += 1
+            #print("%s p. %s has score %s"%(file_name, metadata.get("page_label"), str(node.score)))
             if metadata.get("page_label"):
                 if not file_page_nbs.get(file_name) :
                     file_page_nbs[file_name] = set()
                 file_page_nbs[file_name].add(int(metadata.get("page_label")))
 
-    # Find the file with the highest aggregated score
-    highest_aggregated_score_file = None
-    if file_scores:
-        highest_aggregated_score_file = max(file_scores, key=file_scores.get)
+    # compute avg
+    file_avg_scores = {}
+    for k,v in file_sum_scores.items():
+        file_avg_scores[k] = file_sum_scores.get(k)/file_count.get(k)
+
+    # Find the file with the lower avg score (faiss uses L2 distance as score, lower is better)
+    lower_avg_score_file = None
+    lower_avg_score = 1
+    if file_sum_scores:
+        lower_avg_score_file = min(file_avg_scores, key=file_sum_scores.get)
+        lower_avg_score = min([v for _, v in file_avg_scores.items()])
 
     file_links = []
     seen_files = set()  # Set to track unique file names
 
-    # Generate links for the file with the highest aggregated score
-    if highest_aggregated_score_file:
-        abs_path = Path(os.path.join(os.getcwd(), highest_aggregated_score_file.replace('\\', '/')))
+    # Generate links for the file with the lowest avg score
+    if lower_avg_score_file and lower_avg_score < max_score:
+        abs_path = Path(os.path.join(os.getcwd(), lower_avg_score_file.replace('\\', '/')))
         #file_name = os.path.basename(abs_path)
         file_name = str(abs_path)
-        file_name_without_ext = abs_path.stem
+        #file_name_without_ext = abs_path.stem
         if file_name not in seen_files:  # Ensure the file hasn't already been processed
             if data_source == 'directory':
                 file_link = file_name
@@ -241,7 +253,7 @@ def stream_chatbot(query, chat_history, session_id):
         time.sleep(0.2)
 
         # generate file links if any
-        file_links = generate_references(response)
+        file_links = generate_references(response, max_score=score_threshold_filter)
 
         if file_links:
             partial_response += "<br><br>Reference files:"
