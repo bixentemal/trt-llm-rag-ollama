@@ -170,33 +170,27 @@ def generate_references(response: RESPONSE_TYPE, max_score = 1) -> list[dict] :
                 file_page_nbs[file_name].add(int(metadata.get("page_label")))
 
     # compute avg
+    # key is file name, value is avg score
     file_avg_scores = {}
     for k,v in file_sum_scores.items():
         file_avg_scores[k] = file_sum_scores.get(k)/file_count.get(k)
-
-    # Find the file with the lower avg score (faiss uses L2 distance as score, lower is better)
-    lower_avg_score_file = None
-    lower_avg_score = 1
-    if file_sum_scores:
-        lower_avg_score_file = min(file_avg_scores, key=file_sum_scores.get)
-        lower_avg_score = min([v for _, v in file_avg_scores.items()])
 
     file_links = []
     seen_files = set()  # Set to track unique file names
 
     # Generate links for the file with the lowest avg score
-    if lower_avg_score_file and lower_avg_score < max_score:
-        abs_path = Path(os.path.join(os.getcwd(), lower_avg_score_file.replace('\\', '/')))
-        #file_name = os.path.basename(abs_path)
-        file_name = str(abs_path)
-        #file_name_without_ext = abs_path.stem
-        if file_name not in seen_files:  # Ensure the file hasn't already been processed
-            if data_source == 'directory':
-                file_link = file_name
-            else:
-                exit("Wrong data_source type")
-            file_links.append(file_link)
-            seen_files.add(file_name)  # Mark file as processed
+    for relative_file_name, avg_score in file_avg_scores.items():
+        if avg_score < max_score:
+            abs_path = Path(os.path.join(os.getcwd(), relative_file_name.replace('\\', '/')))
+            file_name = str(abs_path)
+            #file_name_without_ext = abs_path.stem
+            if file_name not in seen_files:  # Ensure the file hasn't already been processed
+                if data_source == 'directory':
+                    file_link = file_name
+                else:
+                    exit("Wrong data_source type")
+                file_links.append(file_link)
+                seen_files.add(file_name)  # Mark file as processed
 
     result = []
     for x in seen_files:
@@ -266,7 +260,6 @@ def stream_chatbot(query, chat_history, session_id):
                                         ", ".join([str(x) for x in sorted(retrieved_file.get("pages"))]) + " ]" if retrieved_file.get("pages")
                                         else retrieved_file.get("filename")
                                     )
-                partial_response += "<br>"
 
         yield  partial_response
 
