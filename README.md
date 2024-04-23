@@ -4,7 +4,7 @@ This is a modified version of the https://github.com/NVIDIA/trt-llm-rag-windows.
 - usable on any system able to run Ollama (<b>including "CPU only" mode</b> 🎉)
 - is no more limited to Windows : <b>Linux and MacOS</b> supported as well.
 - <b>client/server deployment</b> : you can run this python app by connecting to the remote host serving ollama endpoint see [here](#ollama_serve) for details.
-
+- the page numbers are returned along with the reference files.
 
 ![rag](rag_animated.gif)
 
